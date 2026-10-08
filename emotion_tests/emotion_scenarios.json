@@ -1,0 +1,38 @@
+[
+  {
+    "emotion": "Hào hứng / Phấn khởi (Joy & Excitement)",
+    "language": "vi",
+    "prompt": "Hãy thông báo tin vui rằng dự án vừa đạt giải quán quân cuộc thi sáng tạo công nghệ toàn cầu!",
+    "emotion_tag": "vui sướng tột cùng, reo hò, phấn chấn"
+  },
+  {
+    "emotion": "Buồn bã / Trầm lắng (Sadness & Melancholy)",
+    "language": "vi",
+    "prompt": "Hãy nói lời chia tay một người bạn thân sắp đi định cư ở nước ngoài thật xúc động.",
+    "emotion_tag": "nghẹn ngào, buồn rầu, giọng trầm lắng"
+  },
+  {
+    "emotion": "Tức giận / Căng thẳng (Anger & Frustration)",
+    "language": "vi",
+    "prompt": "Hãy cảnh báo một kẻ xâm nhập nguy hiểm không được bước thêm một bước nào nữa!",
+    "emotion_tag": "tức giận, gằn giọng, dứt khoát, căng thẳng"
+  },
+  {
+    "emotion": "Thì thầm / Bí mật (Whispering)",
+    "language": "vi",
+    "prompt": "Hãy thì thầm dặn dò kế hoạch bí mật trong đêm tối để người bên cạnh không nghe thấy.",
+    "emotion_tag": "thì thầm, bí mật, hơi thở khẽ"
+  },
+  {
+    "emotion": "Excited & Triumphant",
+    "language": "en",
+    "prompt": "Announce that our spaceship has finally landed safely on Mars after a 7-month voyage!",
+    "emotion_tag": "extremely excited, triumphant and thrilled"
+  },
+  {
+    "emotion": "Whispering & Mysterious",
+    "language": "en",
+    "prompt": "Whisper a forbidden secret about an ancient magical spell hidden in the shadows.",
+    "emotion_tag": "soft whispering, mysterious, eerie tone"
+  }
+]

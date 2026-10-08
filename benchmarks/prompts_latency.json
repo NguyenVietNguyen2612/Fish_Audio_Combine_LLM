@@ -1,0 +1,38 @@
+[
+  {
+    "id": "vi_short",
+    "language": "vi",
+    "category": "short",
+    "prompt": "Xin chào! Bạn có thể giới thiệu ngắn gọn về mình trong một câu được không?"
+  },
+  {
+    "id": "vi_medium",
+    "language": "vi",
+    "category": "medium",
+    "prompt": "Hãy giải thích tại sao bầu trời lại có màu xanh lam vào ban ngày một cách dễ hiểu nhất."
+  },
+  {
+    "id": "vi_long",
+    "language": "vi",
+    "category": "long",
+    "prompt": "Hãy kể một câu chuyện ngắn truyền cảm hứng về một người thợ gốm kiên trì với ước mơ của mình qua ba đoạn văn."
+  },
+  {
+    "id": "en_short",
+    "language": "en",
+    "category": "short",
+    "prompt": "Hello! Give me a friendly one-sentence greeting."
+  },
+  {
+    "id": "en_medium",
+    "language": "en",
+    "category": "medium",
+    "prompt": "Explain the concept of time dilation in special relativity in simple terms."
+  },
+  {
+    "id": "en_long",
+    "language": "en",
+    "category": "long",
+    "prompt": "Narrate an adventurous journey of an explorer discovering a hidden crystal cave deep in the mountains."
+  }
+]

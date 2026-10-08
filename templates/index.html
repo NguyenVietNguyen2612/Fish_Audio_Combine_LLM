@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Pipeline Benchmark: Gemini + Fish Audio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .gradient-border {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+    }
+  </style>
+</head>
+<body class="min-h-full font-sans antialiased flex flex-col justify-between">
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-950/80 sticky top-0 z-50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <i class="fa-solid fa-microphone-lines text-white text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-white tracking-wide">Gemini + Fish Audio Pipeline</h1>
+          <p class="text-xs text-slate-400">Đo lường Latency, TTFT, TTFA & Đánh giá Emotion Voice</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-950/80 text-emerald-400 border border-emerald-800/50">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
+          Ready
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <!-- Left Column: Controls & Input -->
+      <div class="lg:col-span-5 space-y-6">
+        
+        <!-- Config Box -->
+        <div class="gradient-border rounded-2xl p-5 shadow-xl">
+          <h2 class="text-sm font-semibold text-cyan-400 uppercase tracking-wider mb-4 flex items-center">
+            <i class="fa-solid fa-sliders mr-2"></i> Cấu hình Pipeline
+          </h2>
+
+          <div class="space-y-4 text-sm">
+            <!-- Gemini Model -->
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-slate-300">Mô hình Gemini LLM</label>
+                <span class="text-[11px] text-emerald-400 font-medium">⚡ Siêu nhanh (TTFT ~1.4s)</span>
+              </div>
+              <div class="relative">
+                <input type="text" id="geminiModel" list="geminiModelsList" value="gemini-3.1-flash-lite"
+                  class="w-full bg-slate-800/90 border border-slate-700 rounded-lg px-3.5 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-sm"
+                  placeholder="e.g. gemini-3.1-flash-lite, gemini-3.8-flash">
+                <datalist id="geminiModelsList">
+                  <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Khuyến nghị - Siêu nhanh, TTFT ~1.4s)</option>
+                  <option value="gemini-3.8-flash">gemini-3.8-flash</option>
+                  <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                  <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                </datalist>
+              </div>
+            </div>
+
+            <!-- Voice Selector (Vietnamese & English) -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-medium text-slate-300">Chọn giọng đọc (Tiếng Việt & English)</label>
+                <span id="currentVoiceLabel" class="text-[11px] text-cyan-400 font-medium">🇻🇳 Phi Hùng (Tiếng Việt)</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <button type="button" onclick="setVoice('d6126bec5abc465fb965335e043aafbb', '🇻🇳 Phi Hùng (Nam Tiếng Việt)', event)" class="voice-btn px-2.5 py-2 rounded-lg border border-cyan-500 bg-cyan-950/40 text-xs text-left transition flex flex-col">
+                  <span class="font-semibold text-cyan-300">🇻🇳 Phi Hùng</span>
+                  <span class="text-[10px] text-slate-400 mt-0.5">Nam VN • Ấm áp, Biểu cảm</span>
+                </button>
+                <button type="button" onclick="setVoice('933563129e564b19a115bedd57b7406a', '🇺🇸 Sarah (Nữ Tiếng Anh)', event)" class="voice-btn px-2.5 py-2 rounded-lg border border-slate-700 bg-slate-800 text-xs text-left transition flex flex-col hover:border-slate-600">
+                  <span class="font-semibold text-slate-200">🇺🇸 Sarah</span>
+                  <span class="text-[10px] text-slate-400 mt-0.5">Nữ EN • Tự nhiên, Đa ngữ</span>
+                </button>
+                <button type="button" onclick="setVoice('4348ff4c4ce043d58866790fdc670400', '🇻🇳 Nữ VN (Truyền cảm)', event)" class="voice-btn px-2.5 py-2 rounded-lg border border-slate-700 bg-slate-800 text-xs text-left transition flex flex-col hover:border-slate-600">
+                  <span class="font-semibold text-slate-200">🇻🇳 Nữ VN</span>
+                  <span class="text-[10px] text-slate-400 mt-0.5">Nữ VN • Rõ ràng, Chững chạc</span>
+                </button>
+                <button type="button" onclick="setVoice('802e3bc2b27e49c2995d23ef70e6ac89', '🇺🇸 Energetic Male (Nam EN)', event)" class="voice-btn px-2.5 py-2 rounded-lg border border-slate-700 bg-slate-800 text-xs text-left transition flex flex-col hover:border-slate-600">
+                  <span class="font-semibold text-slate-200">🇺🇸 Energetic Male</span>
+                  <span class="text-[10px] text-slate-400 mt-0.5">Nam EN • Năng lượng cao</span>
+                </button>
+              </div>
+              <input type="text" id="voiceId" value="d6126bec5abc465fb965335e043aafbb"
+                class="w-full bg-slate-800/90 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-300 placeholder-slate-500 text-xs font-mono"
+                placeholder="Hoặc dán bất kỳ Voice ID nào...">
+            </div>
+
+            <!-- Fish Audio Model -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Mô hình Fish Audio TTS</label>
+              <select id="fishModel" class="w-full bg-slate-800/90 border border-slate-700 rounded-lg px-3.5 py-2 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-sm">
+                <option value="s2.1-pro-free" selected>s2.1-pro-free (Miễn phí Developer Free Tier)</option>
+                <option value="s2.1-pro">s2.1-pro (Paid / Production)</option>
+              </select>
+            </div>
+
+            <!-- Language Mode -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-medium text-slate-300">Ngôn ngữ trả lời (Language Mode)</label>
+                <span class="text-[10px] text-cyan-400">Đồng bộ với giọng đọc</span>
+              </div>
+              <div class="grid grid-cols-3 gap-2" id="languageSelector">
+                <button type="button" onclick="setLanguage('vi', event)" id="langBtn_vi" class="lang-btn active px-2.5 py-1.5 rounded-lg border border-cyan-500 bg-cyan-950/40 text-xs text-center font-medium text-cyan-300 transition">
+                  🇻🇳 Tiếng Việt
+                </button>
+                <button type="button" onclick="setLanguage('en', event)" id="langBtn_en" class="lang-btn px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-xs text-center font-medium text-slate-300 transition hover:border-slate-600">
+                  🇺🇸 English
+                </button>
+                <button type="button" onclick="setLanguage('auto', event)" id="langBtn_auto" class="lang-btn px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-xs text-center font-medium text-slate-300 transition hover:border-slate-600">
+                  🌐 Tự động
+                </button>
+              </div>
+              <input type="hidden" id="selectedLanguage" value="vi">
+            </div>
+
+            <!-- Emotion Presets -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label class="block text-xs font-medium text-slate-300">Thử nghiệm Cảm xúc (Fish Audio Emotion Engine)</label>
+                <span class="text-[10px] text-cyan-400">Tự động gán Bracket Tags & Prosody</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2" id="emotionTags">
+                <button type="button" onclick="setEmotion('')" class="emotion-btn active px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-xs font-medium hover:bg-slate-700 text-left transition flex items-center justify-between">
+                  <div>
+                    <span class="block text-white font-medium">😐 Bình thường</span>
+                    <span class="text-[10px] text-slate-400">Chuẩn • 1.0x</span>
+                  </div>
+                  <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-400">Neutral</span>
+                </button>
+                <button type="button" onclick="setEmotion('hào hứng, vui vẻ, phấn chấn')" class="emotion-btn px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-xs font-medium hover:bg-slate-700 text-left transition flex items-center justify-between">
+                  <div>
+                    <span class="block text-amber-300 font-medium">😄 Hào hứng / Vui sướng</span>
+                    <span class="text-[10px] text-slate-400">[laughing] • +2dB • 1.15x</span>
+                  </div>
+                  <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-400 border border-amber-800/40">Joy</span>
+                </button>
+                <button type="button" onclick="setEmotion('buồn bã, xúc động, nghẹn ngào')" class="emotion-btn px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-xs font-medium hover:bg-slate-700 text-left transition flex items-center justify-between">
+                  <div>
+                    <span class="block text-blue-300 font-medium">😢 Buồn bã / Trầm lắng</span>
+                    <span class="text-[10px] text-slate-400">[sigh] • -3dB • 0.85x</span>
+                  </div>
+                  <span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-400 border border-blue-800/40">Sad</span>
+                </button>
+                <button type="button" onclick="setEmotion('tức giận, gay gắt, dứt khoát')" class="emotion-btn px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-xs font-medium hover:bg-slate-700 text-left transition flex items-center justify-between">
+                  <div>
+                    <span class="block text-rose-300 font-medium">😡 Tức giận / Gay gắt</span>
+                    <span class="text-[10px] text-slate-400">[angry] • +3dB • 1.2x</span>
+                  </div>
+                  <span class="text-[9px] px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-400 border border-rose-800/40">Angry</span>
+                </button>
+                <button type="button" onclick="setEmotion('thì thầm, bí mật, dịu dàng')" class="emotion-btn px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-xs font-medium hover:bg-slate-700 text-left transition flex items-center justify-between">
+                  <div>
+                    <span class="block text-cyan-300 font-medium">🤫 Thì thầm / Nhẹ nhàng</span>
+                    <span class="text-[10px] text-slate-400">[whisper] • -6dB • 0.9x</span>
+                  </div>
+                  <span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/40">Whisper</span>
+                </button>
+                <button type="button" onclick="setEmotion('kịch tính, hồi hộp như kể chuyện trinh thám')" class="emotion-btn px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-xs font-medium hover:bg-slate-700 text-left transition flex items-center justify-between">
+                  <div>
+                    <span class="block text-purple-300 font-medium">🎭 Kịch tính / Hồi hộp</span>
+                    <span class="text-[10px] text-slate-400">[gasp] • +1.5dB • 1.1x</span>
+                  </div>
+                  <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-400 border border-purple-800/40">Drama</span>
+                </button>
+              </div>
+              <input type="hidden" id="selectedEmotion" value="">
+            </div>
+          </div>
+        </div>
+
+        <!-- Input Box -->
+        <div class="gradient-border rounded-2xl p-5 shadow-xl space-y-4">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-medium text-slate-300">Nhập câu hỏi / Prompt</label>
+            <span class="text-xs text-slate-400">Song ngữ Tiếng Việt & English</span>
+          </div>
+
+          <textarea id="userPrompt" rows="3"
+            class="w-full bg-slate-800/90 border border-slate-700 rounded-xl p-3.5 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-sm resize-none"
+            placeholder="Gõ câu hỏi của bạn vào đây hoặc chọn câu mẫu bên dưới..."></textarea>
+
+          <!-- Sample Prompts -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-medium text-slate-400">Câu hỏi mẫu thử nghiệm (Bấm để điền):</span>
+              <a href="#test-prompts-guide" onclick="alert('Đã cập nhật file TEST_PROMPTS.md với 14 câu hỏi mẫu chi tiết trong thư mục dự án!')" class="text-[10px] text-cyan-400 hover:underline">Xem file TEST_PROMPTS.md</a>
+            </div>
+            
+            <!-- Vietnamese Prompts -->
+            <div>
+              <span class="text-[10px] text-slate-500 uppercase font-semibold block mb-1">🇻🇳 Tiếng Việt:</span>
+              <div class="flex flex-wrap gap-1.5">
+                <button onclick="setPrompt('Chào bạn! Hãy giới thiệu bản thân trong một câu ngắn thật thân thiện nhé.'); setEmotion('');" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded-md border border-slate-700/60 transition">Chào hỏi (Tốc độ)</button>
+                <button onclick="setPrompt('Chúng ta vừa giành giải nhất cuộc thi lập trình rồi! Hãy reo lên chúc mừng mọi người đi!'); setEmotion('hào hứng, vui vẻ, phấn chấn');" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-amber-300 px-2 py-1 rounded-md border border-slate-700/60 transition">Vui sướng / Reo hò</button>
+                <button onclick="setPrompt('Tôi vừa chia tay một người bạn thân đã gắn bó nhiều năm. Hãy an ủi tôi một câu thật xúc động.'); setEmotion('buồn bã, xúc động, nghẹn ngào');" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-blue-300 px-2 py-1 rounded-md border border-slate-700/60 transition">Buồn / Nghẹn ngào</button>
+                <button onclick="setPrompt('Nói khẽ thôi nhé! Hãy thì thầm cho tôi biết mật mã bí mật để mở cánh cửa kho báu.'); setEmotion('thì thầm, bí mật, dịu dàng');" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-cyan-300 px-2 py-1 rounded-md border border-slate-700/60 transition">Thì thầm bí mật</button>
+                <button onclick="setPrompt('Cảnh báo khẩn cấp! Tàu vũ trụ đang mất kiểm soát, tất cả phi hành đoàn lập tức vào khoang thoát hiểm!'); setEmotion('kịch tính, hồi hộp như kể chuyện trinh thám');" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-purple-300 px-2 py-1 rounded-md border border-slate-700/60 transition">Kịch tính / Khẩn cấp</button>
+                <button onclick="setPrompt('Dừng lại ngay! Ai cho phép bạn tự ý xâm nhập vào khu vực cấm này hả?'); setEmotion('tức giận, gay gắt, dứt khoát');" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-rose-300 px-2 py-1 rounded-md border border-slate-700/60 transition">Tức giận / Gay gắt</button>
+              </div>
+            </div>
+
+            <!-- English Prompts -->
+            <div>
+              <span class="text-[10px] text-cyan-500 uppercase font-semibold block mb-1">🇺🇸 English:</span>
+              <div class="flex flex-wrap gap-1.5">
+                <button onclick="setPrompt('Hey Sarah! How is your day going, and what exciting projects are you working on today?'); selectLanguage('en'); setEmotion('');" class="text-[11px] bg-cyan-950/50 hover:bg-cyan-900/60 text-cyan-300 px-2 py-1 rounded-md border border-cyan-800/60 transition">EN Casual</button>
+                <button onclick="setPrompt('Oh my goodness, we just won first place in the global hackathon! Celebrate and cheer out loud with us!'); selectLanguage('en'); setEmotion('hào hứng, vui vẻ, phấn chấn');" class="text-[11px] bg-cyan-950/50 hover:bg-cyan-900/60 text-amber-300 px-2 py-1 rounded-md border border-cyan-800/60 transition">EN Joy [laughing]</button>
+                <button onclick="setPrompt('I just lost my beloved dog who has been by my side for over ten years. Please say something comforting from your heart.'); selectLanguage('en'); setEmotion('buồn bã, xúc động, nghẹn ngào');" class="text-[11px] bg-cyan-950/50 hover:bg-cyan-900/60 text-blue-300 px-2 py-1 rounded-md border border-cyan-800/60 transition">EN Sadness [sigh]</button>
+                <button onclick="setPrompt('Keep your voice down, don\'t let anyone hear us! Whisper the secret passcode to escape the guarded room.'); selectLanguage('en'); setEmotion('thì thầm, bí mật, dịu dàng');" class="text-[11px] bg-cyan-950/50 hover:bg-cyan-900/60 text-cyan-200 px-2 py-1 rounded-md border border-cyan-800/60 transition">EN Whisper [whisper]</button>
+                <button onclick="setPrompt('Stop right there! How dare you betray our trust and delete all the database records behind my back?'); selectLanguage('en'); setEmotion('tức giận, gay gắt, dứt khoát');" class="text-[11px] bg-cyan-950/50 hover:bg-cyan-900/60 text-rose-300 px-2 py-1 rounded-md border border-cyan-800/60 transition">EN Anger [angry]</button>
+                <button onclick="setPrompt('In a world on the brink of total darkness, one lone survivor holds the final key to save humanity. Time is running out!'); selectLanguage('en'); setEmotion('kịch tính, hồi hộp như kể chuyện trinh thám');" class="text-[11px] bg-cyan-950/50 hover:bg-cyan-900/60 text-purple-300 px-2 py-1 rounded-md border border-cyan-800/60 transition">EN Trailer [gasp]</button>
+              </div>
+            </div>
+          </div>
+
+          <button id="btnSubmit" onclick="runPipeline()"
+            class="w-full mt-2 py-3 px-4 rounded-xl font-semibold text-sm bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 transition duration-200 flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-play" id="btnIcon"></i>
+            <span id="btnText">Chạy Pipeline & Nghe Thử</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Metrics Dashboard & Audio Player -->
+      <div class="lg:col-span-7 space-y-6">
+        
+        <!-- Latency Metrics Cards -->
+        <div class="gradient-border rounded-2xl p-5 shadow-xl">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold text-cyan-400 uppercase tracking-wider flex items-center">
+              <i class="fa-solid fa-gauge-high mr-2"></i> Latency & Benchmark Metrics
+            </h2>
+            <span id="statusBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">Chờ lệnh</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+            <!-- LLM TTFT -->
+            <div class="bg-slate-800/80 rounded-xl p-3.5 border border-slate-700/80">
+              <div class="text-[11px] text-slate-400 font-medium">⚡ LLM TTFT</div>
+              <div class="text-xl font-bold text-cyan-300 mt-1" id="m_ttft">-- <span class="text-xs font-normal text-slate-400">ms</span></div>
+              <div class="text-[10px] text-slate-500 mt-0.5">Gemini first token</div>
+            </div>
+
+            <!-- TTS TTFA -->
+            <div class="bg-slate-800/80 rounded-xl p-3.5 border border-slate-700/80">
+              <div class="text-[11px] text-slate-400 font-medium">🗣️ TTS TTFA</div>
+              <div class="text-xl font-bold text-amber-300 mt-1" id="m_ttfa">-- <span class="text-xs font-normal text-slate-400">ms</span></div>
+              <div class="text-[10px] text-slate-500 mt-0.5">Fish Audio first chunk</div>
+            </div>
+
+            <!-- E2E First Audio -->
+            <div class="bg-slate-800/80 rounded-xl p-3.5 border border-cyan-500/30 bg-cyan-950/20">
+              <div class="text-[11px] text-cyan-300 font-medium">🚀 E2E First Sound</div>
+              <div class="text-xl font-bold text-emerald-400 mt-1" id="m_e2e">-- <span class="text-xs font-normal text-slate-400">ms</span></div>
+              <div class="text-[10px] text-slate-400 mt-0.5">Prompt → First Audio</div>
+            </div>
+
+            <!-- Audio Duration -->
+            <div class="bg-slate-800/80 rounded-xl p-3.5 border border-slate-700/80">
+              <div class="text-[11px] text-slate-400 font-medium">⏱️ Audio Duration</div>
+              <div class="text-xl font-bold text-purple-300 mt-1" id="m_duration">-- <span class="text-xs font-normal text-slate-400">s</span></div>
+              <div class="text-[10px] text-slate-500 mt-0.5">Độ dài file âm thanh</div>
+            </div>
+
+            <!-- Real-Time Factor (RTF) -->
+            <div class="bg-slate-800/80 rounded-xl p-3.5 border border-slate-700/80">
+              <div class="text-[11px] text-slate-400 font-medium">📈 RTF (Real-Time Factor)</div>
+              <div class="text-xl font-bold text-indigo-300 mt-1" id="m_rtf">--</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">TTS Time / Audio Length (&lt;1.0)</div>
+            </div>
+
+            <!-- Total Pipeline Time -->
+            <div class="bg-slate-800/80 rounded-xl p-3.5 border border-slate-700/80">
+              <div class="text-[11px] text-slate-400 font-medium">⌛ Total Time</div>
+              <div class="text-xl font-bold text-slate-200 mt-1" id="m_total">-- <span class="text-xs font-normal text-slate-400">ms</span></div>
+              <div class="text-[10px] text-slate-500 mt-0.5">Hoàn tất toàn bộ</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio Player & Response Text -->
+        <div class="gradient-border rounded-2xl p-5 shadow-xl space-y-4">
+          <h2 class="text-sm font-semibold text-cyan-400 uppercase tracking-wider flex items-center justify-between">
+            <span><i class="fa-solid fa-volume-high mr-2"></i> Âm thanh & Câu trả lời</span>
+            <span id="emotionBadge" class="hidden text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800"></span>
+          </h2>
+
+          <!-- Audio Element -->
+          <div class="bg-slate-950/60 rounded-xl p-4 border border-slate-800 flex flex-col items-center justify-center space-y-2">
+            <audio id="audioPlayer" controls class="w-full"></audio>
+            <div id="audioPlaceholder" class="text-xs text-slate-500 py-2">
+              <i class="fa-solid fa-music mr-1"></i> Chưa có âm thanh. Hãy bấm chạy pipeline để nghe kết quả.
+            </div>
+          </div>
+
+          <!-- Transcript Text -->
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">Nội dung Gemini sinh ra:</label>
+            <div id="transcriptBox" class="w-full min-h-[90px] max-h-[160px] overflow-y-auto bg-slate-950/50 rounded-xl p-3.5 text-sm text-slate-300 border border-slate-800 leading-relaxed">
+              <span class="text-slate-600 italic">Văn bản phản hồi sẽ hiển thị ở đây...</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- EXPANDED FULL-WIDTH HISTORY BENCHMARK SECTION -->
+    <div class="mt-8 gradient-border rounded-2xl p-6 shadow-2xl space-y-5">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center">
+            <i class="fa-solid fa-table-list mr-2.5 text-cyan-400 text-lg"></i>
+            Lịch Sử Kiểm Thử Chi Tiết (Benchmark Dashboard & Audio Archive)
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Lưu trữ toàn diện các chỉ số TTFT, TTFA, E2E Latency, RTF, nội dung prompt và hỗ trợ nghe lại âm thanh từng lượt chạy</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="exportCSV()" class="px-3.5 py-1.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 text-xs font-medium border border-emerald-800/60 transition flex items-center shadow">
+            <i class="fa-solid fa-file-csv mr-1.5 text-emerald-400"></i> Xuất CSV
+          </button>
+          <button onclick="exportJSON()" class="px-3.5 py-1.5 rounded-lg bg-cyan-950/70 hover:bg-cyan-900/80 text-cyan-300 text-xs font-medium border border-cyan-800/60 transition flex items-center shadow">
+            <i class="fa-solid fa-file-code mr-1.5 text-cyan-400"></i> Xuất JSON
+          </button>
+          <button onclick="clearHistory()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/70 text-slate-400 hover:text-rose-300 text-xs font-medium border border-slate-700 hover:border-rose-800/50 transition flex items-center">
+            <i class="fa-solid fa-trash mr-1.5"></i> Xóa lịch sử
+          </button>
+        </div>
+      </div>
+
+      <!-- Summary Stat Badges -->
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
+        <div class="bg-slate-800/70 rounded-xl p-3.5 border border-slate-700/60">
+          <div class="text-[11px] text-slate-400 uppercase font-medium">Tổng lượt test</div>
+          <div class="text-2xl font-bold text-white mt-1" id="sum_total">0</div>
+        </div>
+        <div class="bg-slate-800/70 rounded-xl p-3.5 border border-slate-700/60">
+          <div class="text-[11px] text-cyan-400 uppercase font-medium">⚡ TTFT Trung bình</div>
+          <div class="text-2xl font-bold text-cyan-300 mt-1" id="sum_ttft">-- <span class="text-xs font-normal text-slate-400">ms</span></div>
+        </div>
+        <div class="bg-slate-800/70 rounded-xl p-3.5 border border-slate-700/60">
+          <div class="text-[11px] text-amber-400 uppercase font-medium">🗣️ TTFA Trung bình</div>
+          <div class="text-2xl font-bold text-amber-300 mt-1" id="sum_ttfa">-- <span class="text-xs font-normal text-slate-400">ms</span></div>
+        </div>
+        <div class="bg-slate-800/70 rounded-xl p-3.5 border border-slate-700/60">
+          <div class="text-[11px] text-emerald-400 uppercase font-medium">🚀 E2E Trung bình</div>
+          <div class="text-2xl font-bold text-emerald-400 mt-1" id="sum_e2e">-- <span class="text-xs font-normal text-slate-400">ms</span></div>
+        </div>
+        <div class="bg-slate-800/70 rounded-xl p-3.5 border border-slate-700/60">
+          <div class="text-[11px] text-indigo-400 uppercase font-medium">📈 RTF Trung bình</div>
+          <div class="text-2xl font-bold text-indigo-300 mt-1" id="sum_rtf">--</div>
+        </div>
+      </div>
+
+      <!-- History Table with Scroll -->
+      <div class="overflow-x-auto max-h-[460px] overflow-y-auto rounded-xl border border-slate-800 shadow-inner">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0 z-10">
+            <tr>
+              <th class="p-3 w-12 text-center">#</th>
+              <th class="p-3 w-24">Thời gian</th>
+              <th class="p-3 w-32">Model</th>
+              <th class="p-3 w-32">Giọng & Cảm xúc</th>
+              <th class="p-3 min-w-[240px]">Prompt & Câu trả lời</th>
+              <th class="p-3 w-24 text-cyan-400 font-semibold">TTFT</th>
+              <th class="p-3 w-24 text-amber-400 font-semibold">TTFA</th>
+              <th class="p-3 w-28 text-emerald-400 font-bold">E2E Latency</th>
+              <th class="p-3 w-20 text-purple-300 font-semibold">Độ dài</th>
+              <th class="p-3 w-20 text-indigo-300 font-mono font-semibold">RTF</th>
+              <th class="p-3 w-24 text-center">Nghe lại</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody" class="divide-y divide-slate-800/60">
+            <tr id="emptyHistoryRow">
+              <td colspan="11" class="p-8 text-center text-slate-500 italic">
+                Chưa có lượt chạy nào. Hãy gửi prompt để bắt đầu lưu lịch sử kiểm thử!
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 py-4 text-center text-xs text-slate-500">
+    Gemini + Fish Audio Pipeline Benchmark Tool • Antigravity AI
+  </footer>
+
+  <script>
+    let historyData = [];
+
+    function setPrompt(text) {
+      document.getElementById('userPrompt').value = text;
+    }
+
+    function selectLanguage(lang) {
+      document.getElementById('selectedLanguage').value = lang;
+      const btns = document.querySelectorAll('.lang-btn');
+      btns.forEach(b => {
+        b.classList.remove('border-cyan-500', 'bg-cyan-950/40', 'text-cyan-300');
+        b.classList.add('border-slate-700', 'bg-slate-800', 'text-slate-300');
+      });
+      const activeBtn = document.getElementById('langBtn_' + lang);
+      if (activeBtn) {
+        activeBtn.classList.remove('border-slate-700', 'bg-slate-800', 'text-slate-300');
+        activeBtn.classList.add('border-cyan-500', 'bg-cyan-950/40', 'text-cyan-300');
+      }
+    }
+
+    function setLanguage(lang, e) {
+      selectLanguage(lang);
+    }
+
+    function setVoice(id, label, e) {
+      document.getElementById('voiceId').value = id;
+      document.getElementById('currentVoiceLabel').innerText = label;
+      const btns = document.querySelectorAll('.voice-btn');
+      btns.forEach(b => {
+        b.classList.remove('border-cyan-500', 'bg-cyan-950/40');
+        b.classList.add('border-slate-700', 'bg-slate-800');
+        const title = b.querySelector('span:first-child');
+        if (title) {
+          title.classList.remove('text-cyan-300');
+          title.classList.add('text-slate-200');
+        }
+      });
+      const target = e ? e.currentTarget : null;
+      if (target) {
+        target.classList.remove('border-slate-700', 'bg-slate-800');
+        target.classList.add('border-cyan-500', 'bg-cyan-950/40');
+        const activeTitle = target.querySelector('span:first-child');
+        if (activeTitle) {
+          activeTitle.classList.remove('text-slate-200');
+          activeTitle.classList.add('text-cyan-300');
+        }
+      }
+
+      // Tự động đồng bộ ngôn ngữ câu trả lời tương ứng với giọng
+      if (id === '933563129e564b19a115bedd57b7406a' || id === '802e3bc2b27e49c2995d23ef70e6ac89') {
+        selectLanguage('en');
+      } else if (id === 'd6126bec5abc465fb965335e043aafbb' || id === '4348ff4c4ce043d58866790fdc670400') {
+        selectLanguage('vi');
+      }
+    }
+
+    function setEmotion(tag) {
+      document.getElementById('selectedEmotion').value = tag;
+      const btns = document.querySelectorAll('.emotion-btn');
+      btns.forEach(b => {
+        b.classList.remove('border-cyan-500', 'bg-cyan-950/40', 'text-cyan-300');
+        b.classList.add('border-slate-700', 'bg-slate-800');
+      });
+      event.currentTarget.classList.remove('border-slate-700', 'bg-slate-800');
+      event.currentTarget.classList.add('border-cyan-500', 'bg-cyan-950/40', 'text-cyan-300');
+    }
+
+    async function runPipeline() {
+      const prompt = document.getElementById('userPrompt').value.trim();
+      const geminiModel = document.getElementById('geminiModel').value.trim() || 'gemini-3.1-flash-lite';
+      const voiceId = document.getElementById('voiceId').value.trim();
+      const fishModel = document.getElementById('fishModel').value.trim() || 's2.1-pro-free';
+      const language = document.getElementById('selectedLanguage').value || 'auto';
+      const emotionTag = document.getElementById('selectedEmotion').value.trim();
+
+      if (!prompt) {
+        alert("Vui lòng nhập câu hỏi hoặc chọn câu mẫu!");
+        return;
+      }
+
+      // UI Loading state
+      const btn = document.getElementById('btnSubmit');
+      const btnText = document.getElementById('btnText');
+      const btnIcon = document.getElementById('btnIcon');
+      const statusBadge = document.getElementById('statusBadge');
+      const transcriptBox = document.getElementById('transcriptBox');
+      const audioPlaceholder = document.getElementById('audioPlaceholder');
+      const audioPlayer = document.getElementById('audioPlayer');
+
+      btn.disabled = true;
+      btn.classList.add('opacity-70', 'cursor-not-allowed');
+      btnIcon.className = 'fa-solid fa-spinner fa-spin';
+      btnText.innerText = 'Đang xử lý & Tổng hợp...';
+      statusBadge.innerText = 'Đang chạy...';
+      statusBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 animate-pulse';
+
+      transcriptBox.innerHTML = '<span class="text-cyan-400 italic"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Gemini đang suy nghĩ và sinh câu trả lời...</span>';
+
+      try {
+        const response = await fetch('/api/chat-voice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: prompt,
+            gemini_model: geminiModel,
+            voice_id: voiceId,
+            fish_model: fishModel,
+            language: language,
+            emotion_tag: emotionTag
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || 'Có lỗi xảy ra khi gọi pipeline.');
+        }
+
+        // Render Results
+        transcriptBox.innerText = data.text;
+        
+        // Metrics
+        document.getElementById('m_ttft').innerHTML = `${data.metrics.llm_ttft_ms} <span class="text-xs font-normal text-slate-400">ms</span>`;
+        document.getElementById('m_ttfa').innerHTML = `${data.metrics.tts_ttfa_ms} <span class="text-xs font-normal text-slate-400">ms</span>`;
+        document.getElementById('m_e2e').innerHTML = `${data.metrics.e2e_first_audio_latency_ms} <span class="text-xs font-normal text-slate-400">ms</span>`;
+        document.getElementById('m_duration').innerHTML = `${data.metrics.audio_duration_s} <span class="text-xs font-normal text-slate-400">s</span>`;
+        document.getElementById('m_rtf').innerText = `${data.metrics.rtf}`;
+        document.getElementById('m_total').innerHTML = `${data.metrics.pipeline_total_ms} <span class="text-xs font-normal text-slate-400">ms</span>`;
+
+        // Emotion Badge
+        const emotionBadge = document.getElementById('emotionBadge');
+        if (emotionTag) {
+          emotionBadge.innerText = `Cảm xúc: ${emotionTag}`;
+          emotionBadge.classList.remove('hidden');
+        } else {
+          emotionBadge.classList.add('hidden');
+        }
+
+        // Audio
+        audioPlaceholder.classList.add('hidden');
+        audioPlayer.src = data.audio_url;
+        audioPlayer.play().catch(e => console.log('Autoplay prevented by browser:', e));
+
+        statusBadge.innerText = 'Hoàn tất';
+        statusBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800';
+
+        // Add to history
+        addHistoryRow(data, prompt);
+
+      } catch (err) {
+        alert("Lỗi: " + err.message);
+        transcriptBox.innerHTML = `<span class="text-rose-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Lỗi: ${err.message}</span>`;
+        statusBadge.innerText = 'Thất bại';
+        statusBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800';
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-not-allowed');
+        btnIcon.className = 'fa-solid fa-play';
+        btnText.innerText = 'Chạy Pipeline & Nghe Thử';
+      }
+    }
+
+    function addHistoryRow(data, promptText) {
+      const tbody = document.getElementById('historyTableBody');
+      const emptyRow = document.getElementById('emptyHistoryRow');
+      if (emptyRow) emptyRow.remove();
+
+      const now = new Date().toLocaleTimeString();
+      const record = {
+        id: historyData.length + 1,
+        time: now,
+        model: data.config.gemini_model,
+        voice: data.config.voice_id,
+        emotion: data.config.emotion_tag,
+        prompt: promptText,
+        text: data.text,
+        audio_url: data.audio_url,
+        ttft: data.metrics.llm_ttft_ms,
+        ttfa: data.metrics.tts_ttfa_ms,
+        e2e: data.metrics.e2e_first_audio_latency_ms,
+        duration: data.metrics.audio_duration_s,
+        rtf: data.metrics.rtf
+      };
+      historyData.unshift(record);
+
+      // Cập nhật thống kê trung bình
+      updateHistorySummary();
+
+      // Render dòng mới
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-900/60 transition';
+      tr.innerHTML = `
+        <td class="p-3 text-center text-slate-500 font-mono">${record.id}</td>
+        <td class="p-3 text-slate-400 whitespace-nowrap">${record.time}</td>
+        <td class="p-3">
+          <span class="text-cyan-300 font-mono text-[11px] block">${record.model}</span>
+        </td>
+        <td class="p-3">
+          <span class="text-xs text-white block">${record.voice.substring(0, 10)}...</span>
+          <span class="inline-block px-1.5 py-0.5 mt-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700">
+            ${record.emotion}
+          </span>
+        </td>
+        <td class="p-3">
+          <div class="text-[11px] text-slate-400 font-medium line-clamp-1"><span class="text-cyan-500 mr-1">Q:</span>${escapeHtml(record.prompt)}</div>
+          <div class="text-[11px] text-slate-300 line-clamp-2 mt-0.5"><span class="text-emerald-500 mr-1">A:</span>${escapeHtml(record.text)}</div>
+        </td>
+        <td class="p-3 text-cyan-400 font-medium whitespace-nowrap">${record.ttft}ms</td>
+        <td class="p-3 text-amber-400 font-medium whitespace-nowrap">${record.ttfa}ms</td>
+        <td class="p-3 text-emerald-400 font-bold whitespace-nowrap">${record.e2e}ms</td>
+        <td class="p-3 text-purple-300 font-mono whitespace-nowrap">${record.duration}s</td>
+        <td class="p-3 text-indigo-300 font-mono whitespace-nowrap">${record.rtf}</td>
+        <td class="p-3 text-center whitespace-nowrap">
+          <button onclick="playHistoryAudio('${record.audio_url}')" class="px-2.5 py-1 rounded-md bg-cyan-950/70 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 text-xs font-medium transition flex items-center justify-center mx-auto shadow">
+            <i class="fa-solid fa-play text-[10px] mr-1"></i> Nghe
+          </button>
+        </td>
+      `;
+      tbody.prepend(tr);
+    }
+
+    function playHistoryAudio(url) {
+      const audioPlayer = document.getElementById('audioPlayer');
+      const audioPlaceholder = document.getElementById('audioPlaceholder');
+      audioPlaceholder.classList.add('hidden');
+      audioPlayer.src = url;
+      audioPlayer.play().catch(e => console.log('Autoplay prevented:', e));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateHistorySummary() {
+      const count = historyData.length;
+      if (count === 0) {
+        document.getElementById('sum_total').innerText = '0';
+        document.getElementById('sum_ttft').innerHTML = '-- <span class="text-xs font-normal text-slate-400">ms</span>';
+        document.getElementById('sum_ttfa').innerHTML = '-- <span class="text-xs font-normal text-slate-400">ms</span>';
+        document.getElementById('sum_e2e').innerHTML = '-- <span class="text-xs font-normal text-slate-400">ms</span>';
+        document.getElementById('sum_rtf').innerText = '--';
+        return;
+      }
+
+      const avgTTFT = (historyData.reduce((acc, r) => acc + r.ttft, 0) / count).toFixed(1);
+      const avgTTFA = (historyData.reduce((acc, r) => acc + r.ttfa, 0) / count).toFixed(1);
+      const avgE2E = (historyData.reduce((acc, r) => acc + r.e2e, 0) / count).toFixed(1);
+      const avgRTF = (historyData.reduce((acc, r) => acc + r.rtf, 0) / count).toFixed(3);
+
+      document.getElementById('sum_total').innerText = count;
+      document.getElementById('sum_ttft').innerHTML = `${avgTTFT} <span class="text-xs font-normal text-slate-400">ms</span>`;
+      document.getElementById('sum_ttfa').innerHTML = `${avgTTFA} <span class="text-xs font-normal text-slate-400">ms</span>`;
+      document.getElementById('sum_e2e').innerHTML = `${avgE2E} <span class="text-xs font-normal text-slate-400">ms</span>`;
+      document.getElementById('sum_rtf').innerText = avgRTF;
+    }
+
+    function clearHistory() {
+      if (historyData.length === 0) return;
+      if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử kiểm thử?')) return;
+      historyData = [];
+      const tbody = document.getElementById('historyTableBody');
+      tbody.innerHTML = '<tr id="emptyHistoryRow"><td colspan="11" class="p-8 text-center text-slate-500 italic">Chưa có lượt chạy nào. Hãy gửi prompt để bắt đầu lưu lịch sử kiểm thử!</td></tr>';
+      updateHistorySummary();
+    }
+
+    function exportCSV() {
+      if (historyData.length === 0) {
+        alert('Chưa có dữ liệu kiểm thử để xuất CSV.');
+        return;
+      }
+      const headers = ['ID', 'Thời gian', 'Model', 'Voice ID', 'Cảm xúc', 'Prompt', 'Transcript', 'TTFT (ms)', 'TTFA (ms)', 'E2E (ms)', 'Độ dài (s)', 'RTF', 'Audio URL'];
+      const rows = historyData.map(r => [
+        r.id,
+        `"${r.time}"`,
+        `"${r.model}"`,
+        `"${r.voice}"`,
+        `"${r.emotion.replace(/"/g, '""')}"`,
+        `"${r.prompt.replace(/"/g, '""')}"`,
+        `"${r.text.replace(/"/g, '""')}"`,
+        r.ttft,
+        r.ttfa,
+        r.e2e,
+        r.duration,
+        r.rtf,
+        `"${r.audio_url}"`
+      ]);
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `benchmark_history_${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+    }
+
+    function exportJSON() {
+      if (historyData.length === 0) {
+        alert('Chưa có dữ liệu kiểm thử để xuất JSON.');
+        return;
+      }
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(historyData, null, 2));
+      const link = document.createElement('a');
+      link.href = dataStr;
+      link.download = `benchmark_history_${new Date().toISOString().slice(0,10)}.json`;
+      link.click();
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+  </script>
+</body>
+</html>
